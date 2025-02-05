@@ -1,7 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://raw.githubusercontent.com/nf-core/surfaceproteins/master/assets/schema_input.json",
-    "title": "nf-core/surfaceproteins pipeline - params.input schema",
+    "title": "surfaceproteins pipeline - params.input schema",
     "description": "Schema for the file provided with params.input",
     "type": "array",
     "items": {
@@ -13,21 +13,32 @@
                 "errorMessage": "Sample name must be provided and cannot contain spaces",
                 "meta": ["id"]
             },
-            "fastq_1": {
+            "taxonomy": {
                 "type": "string",
-                "format": "file-path",
-                "exists": true,
-                "pattern": "^\\S+\\.f(ast)?q\\.gz$",
-                "errorMessage": "FastQ file for reads 1 must be provided, cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
+                "meta": ["tax"]
             },
-            "fastq_2": {
+            "assembly": {
                 "type": "string",
                 "format": "file-path",
                 "exists": true,
-                "pattern": "^\\S+\\.f(ast)?q\\.gz$",
-                "errorMessage": "FastQ file for reads 2 cannot contain spaces and must have extension '.fq.gz' or '.fastq.gz'"
+                "pattern": "^\\S+\\.fa(sta)?(a)?$",
+                "errorMessage": "Fasta file cannot contain spaces and must have extension '.fa' or '.fasta'"
+            },
+            "annotation_fasta": {
+                "type": "string",
+                "format": "file-path",
+                "exists": true,
+                "pattern": "^\\S+\\.fa(sta)?$",
+                "errorMessage": "Fasta file cannot contain spaces and must have extension '.fasta' or '.fa'"
+            },
+            "annotation_gff": {
+                "type": "string",
+                "format": "file-path",
+                "exists": true,
+                "pattern": "^\\S+\\.gff$",
+                "errorMessage": "GFF file cannot contain spaces and must have extension '.gff'"
             }
         },
-        "required": ["sample", "fastq_1"]
+        "required": ["sample"]
     }
 }

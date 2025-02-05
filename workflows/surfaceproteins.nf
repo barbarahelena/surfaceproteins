@@ -3,12 +3,17 @@
     IMPORT MODULES / SUBWORKFLOWS / FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
-include { FASTQC                 } from '../modules/nf-core/fastqc/main'
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
+// include { BAKTA_BAKTADBDOWNLOAD  } from '../modules/nf-core/bakta/baktadbdownload/main.nf'
+// include { BAKTA_BAKTA            } from '../modules/nf-core/bakta/bakta/main.nf'
+include { PROKKA                 } from '../modules/local/prokka/main'
+include { DEEPTMHMM              } from '../modules/local/deeptmhmm'
+include { SIGNALP                } from '../modules/local/signalp'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { methodsDescriptionText } from '../subworkflows/local/utils_nfcore_surfaceproteins_pipeline'
+include { SIGNALP } from '../modules/local/signalp.nf'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -20,18 +25,47 @@ workflow SURFACEPROTEINS {
 
     take:
     ch_samplesheet // channel: samplesheet read in from --input
+    annotation
+
     main:
 
     ch_versions = Channel.empty()
     ch_multiqc_files = Channel.empty()
+    // bakta_db = params.bakta_database ? Channel.value(params.bakta_database) : []
+
     //
-    // MODULE: Run FastQC
+    // Bakta
     //
-    FASTQC (
-        ch_samplesheet
-    )
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]})
-    ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+    // if ( annotation ) {
+    //     if ( ! bakta_db ){
+    //         BAKTA_BAKTADBDOWNLOAD()
+    //         bakta_db = BAKTA_BAKTADBDOWNLOAD.out.db
+    //     }         
+    //     BAKTA_BAKTA( 
+    //         ch_samplesheet, 
+    //         bakta_db
+    //     )
+    //     ch_annotation = BAKTA_BAKTA.out.faa
+    //             .join(BAKTA_BAKTA.out.gff)
+    // }
+
+    //
+    // Prokka
+    //
+    if ( annotation ) {
+        PROKKA ( ch_samplesheet, [], [] )
+        ch_annotation = PROKKA.out.faa.join(PROKKA.out.faa).join(PROKKA.out.gff)
+    }
+
+    //
+    // Deep-TMHMM
+    //
+    DEEPTMHMM( ch_annotation )
+
+    //
+    // SignalP
+    //
+    SIGNALP( ch_annotation )
 
     //
     // Collate and save software versions
