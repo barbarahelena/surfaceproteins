@@ -7,3 +7,4 @@ testing/
 testing*
 *.pyc
 null/
+assets/TMHMM2.0.model
