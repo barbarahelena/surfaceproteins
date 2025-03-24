@@ -10,6 +10,8 @@ process BAKTA_BAKTA {
     input:
     tuple val(meta), path(fasta)
     path db
+    path proteins
+    path prodigal_tf
 
     output:
     tuple val(meta), path("${prefix}.embl")             , emit: embl
@@ -30,17 +32,17 @@ process BAKTA_BAKTA {
     script:
     def args = task.ext.args   ?: ''
     prefix   = task.ext.prefix ?: "${meta.id}"
-
+    def proteins_opt = proteins ? "--proteins ${proteins[0]}" : ""
+    def prodigal_tf = prodigal_tf ? "--prodigal-tf ${prodigal_tf[0]}" : ""
     """
-    export MPLCONFIGDIR=/tmp/matplotlib
-    mkdir -p \$MPLCONFIGDIR
-
     bakta \\
         $fasta \\
         $args \\
         --threads $task.cpus \\
         --prefix $prefix \\
-        --tmp-dir /tmp \\
+        $proteins_opt \\
+        $prodigal_tf \\
+        --skip-trna \\
         --db $db
 
     cat <<-END_VERSIONS > versions.yml
