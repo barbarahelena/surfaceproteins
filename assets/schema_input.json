@@ -17,6 +17,11 @@
                 "type": "string",
                 "meta": ["tax"]
             },
+            "gram": {
+                "type": "string",
+                "meta": ["gram"],
+                "enum": ["gram-positive", "gram-negative", "unknown"]
+            },
             "assembly": {
                 "type": "string",
                 "format": "file-path",
