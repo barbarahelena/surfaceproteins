@@ -111,6 +111,12 @@
                     "format": "directory-path",
                     "description": "Input bakta database",
                     "fa_icon": "fas fa-question-circle"
+                },
+                "boctopus_database": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Input boctopus2 database",
+                    "fa_icon": "fas fa-question-circle"
                 }
             }
         },
