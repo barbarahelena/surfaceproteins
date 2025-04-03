@@ -8,7 +8,7 @@ process MERGE_TABLES {
     tuple val(meta), path(signalp), path(tmhmm), path(psortb), path(phobius), path(boctopus)
 
     output:
-    tuple val(meta), path('*.csv'), emit: mergedtable
+    tuple val(meta), path("${meta.id}_mergedtable.csv"), emit: mergedtable
 
     when:
     task.ext.when == null || task.ext.when
@@ -33,7 +33,7 @@ process MERGE_TABLES {
     tmhmm <- read.csv("${tmhmm}", sep = "\\t", skip = 1, header = FALSE)
     colnames(tmhmm) <- c("meta_id", "tax_id", "protein_id", "protein_name", "tmhmm_inside_count", "tmhmm_outside_count",
                         "tmhmm_membrane_count", "tmhmm_inside_prop", "tmhmm_outside_prop", "tmhmm_membrane_prop",
-                        "topology_summary", "PredHel", "TM_60")
+                        "PredHel", "TM_60", "has_TM")
 
     # Only add psortb if there is output
     if(nrow(psort) > 0){
@@ -43,12 +43,10 @@ process MERGE_TABLES {
     }
 
     # Check if BOCTOPUS2 results exist
-    has_boctopus <- file.exists("${boctopus}") && file.size("${boctopus}") > 0
     # Use BOCTOPUS2 results only if they exist
-    if (has_boctopus) {
-        # Process with BOCTOPUS2 data
-    } else {
-        # Process without BOCTOPUS2 data
+    if (file.exists("${boctopus}")){
+        boct <- read.csv("${boctopus}", sep = ",")
+        tot <- left_join(tot, boct)
     }
     
     write.csv(tot, file = "${meta.id}_mergedtable.csv")
