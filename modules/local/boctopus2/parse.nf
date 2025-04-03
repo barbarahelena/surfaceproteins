@@ -11,8 +11,7 @@ process BOCTOPUS2_PARSE {
     tuple val(meta), path(boctopus_files)
 
     output:
-    tuple val(meta), path("${meta.id}_boctopus_merged.tsv")            , emit: merged
-    tuple val(meta), path("${meta.id}_boctopus_merged_beta_barrel.tsv"), optional: true, emit: beta_barrel
+    tuple val(meta), path("${meta.id}_boctopus_merged.csv")            , emit: merged
     path "versions.yml"                                                , emit: versions
 
     when:
@@ -20,7 +19,7 @@ process BOCTOPUS2_PARSE {
 
     script:
     """
-    parse_boctopus2.py ${meta.id}_boctopus_merged.tsv "${boctopus_files}"
+    parse_boctopus2.py ${meta.id}_boctopus_merged.csv "${boctopus_files}"
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
