@@ -1,7 +1,7 @@
 <h1>
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/surfaceproteinsdark.png">
-    <img alt="surfaceproteins" src="docs/images/surfaceproteins.png" width="75%">
+    <img alt="surfaceproteins" src="docs/images/surfaceproteins.png" width="60%">
   </picture>
 </h1>
 
@@ -20,9 +20,7 @@
 5. Predict subcellular localization using Phobius (uses older versions of SignalP and TMHMM)
 6. Predict beta barrels using BOCTOPUS2 (on a selection of proteins in gram-negatives! this one is quite slow)
 
-<picture>
 <img alt="workflow roadmap" src="docs/images/workflow.png" width="75%">
-</picture>
 
 ## Usage
 
