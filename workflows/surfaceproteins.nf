@@ -65,15 +65,6 @@ workflow SURFACEPROTEINS {
         ch_versions = ch_versions.mix( BAKTA_BAKTA.out.versions )
     }
 
-    //
-    // Prokka
-    //
-    // if ( annotation ) {
-    //     PROKKA ( ch_samplesheet, [], [] )
-    //     ch_annotation = PROKKA.out.fna.join(PROKKA.out.faa).join(PROKKA.out.gff)
-    //     ch_versions = ch_versions.mix( PROKKA.out.versions )
-    // }
-
     SPLIT_PROTEINS( ch_annotation )
 
     SPLIT_PROTEINS.out.split_proteins
