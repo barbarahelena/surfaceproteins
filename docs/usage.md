@@ -6,7 +6,7 @@ The surfaceproteins pipeline is designed to analyze bacterial genome assemblies 
 
 ## Samplesheet input
 
-You will need to create a samplesheet with information about the bacterial genome assemblies you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 2 columns, and a header row as shown in the examples below.
+You will need to create a samplesheet with information about the bacterial genome assemblies you would like to analyse before running the pipeline. Use this parameter to specify its location. It has to be a comma-separated file with 4 columns, and a header row as shown in the examples below.
 
 ```bash
 --input '[path to samplesheet file]'
@@ -14,30 +14,33 @@ You will need to create a samplesheet with information about the bacterial genom
 
 ### Samplesheet format
 
-The samplesheet should contain information about the genome assembly files you want to analyze. The pipeline expects genome assemblies in FASTA format.
+The samplesheet should contain information about the genome assembly files you want to analyze. The pipeline expects genome assemblies in FASTA format along with taxonomic information.
 
 ```csv title="samplesheet.csv"
-sample,assembly
-SAMPLE_1,/path/to/sample1_assembly.fasta
-SAMPLE_2,/path/to/sample2_assembly.fasta
-SAMPLE_3,/path/to/sample3_assembly.fasta
+sample,taxonomy,gram,assembly
+SAMPLE_1,Escherichia coli,gram-negative,/path/to/sample1_assembly.fasta
+SAMPLE_2,Staphylococcus aureus,gram-positive,/path/to/sample2_assembly.fasta
+SAMPLE_3,Pseudomonas aeruginosa,gram-negative,/path/to/sample3_assembly.fasta
 ```
 
 | Column     | Description                                                                                                                                                                            |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `sample`   | Custom sample name. This entry will be used as the sample identifier throughout the pipeline. Spaces in sample names are automatically converted to underscores (`_`).              |
-| `assembly` | Full path to the bacterial genome assembly file in FASTA format (`.fasta`, `.fa`, `.fna`).                |
+| `taxonomy` | Taxonomic name of the bacterial species (e.g., "Escherichia coli", "Staphylococcus aureus").                                                                                         |
+| `gram`     | Gram staining type of the bacteria. Must be either "gram-positive" or "gram-negative". This determines the appropriate models for PSortB and SignalP.                               |
+| `assembly` | Full path to the bacterial genome assembly file in FASTA format (`.fasta`, `.fa`, `.fna`).                                                                                          |
 
 ### Full samplesheet example
 
 A complete samplesheet file may look something like the one below:
 
 ```csv title="samplesheet.csv"
-sample,assembly
-E_coli_K12,/data/assemblies/ecoli_k12_mg1655.fasta
-S_aureus_MRSA,/data/assemblies/saureus_mrsa252.fasta
-P_aeruginosa_PAO1,/data/assemblies/paeruginosa_pao1.fna
-B_subtilis_168,/data/assemblies/bsubtilis_168.fasta
+sample,taxonomy,gram,assembly
+WGS1,Escherichia coli,gram-negative,/user/path/to/assembly/WGS1_assembly.fasta
+E_coli_K12,Escherichia coli,gram-negative,/data/assemblies/ecoli_k12_mg1655.fasta
+S_aureus_MRSA,Staphylococcus aureus,gram-positive,/data/assemblies/saureus_mrsa252.fasta
+P_aeruginosa_PAO1,Pseudomonas aeruginosa,gram-negative,/data/assemblies/paeruginosa_pao1.fna
+B_subtilis_168,Bacillus subtilis,gram-positive,/data/assemblies/bsubtilis_168.fasta
 ```
 
 An [example samplesheet](../assets/samplesheet.csv) has been provided with the pipeline.
@@ -68,6 +71,8 @@ The pipeline includes several optional parameters that can be used to customize 
 - `--bakta_db`: Path to Bakta database (if not provided, the pipeline will download it)
 - `--skip_bakta`: Skip Bakta annotation step
 
+The pipeline automatically determines the appropriate PSortB and SignalP models based on the gram type specified in the samplesheet.
+
 Example with custom parameters:
 
 ```bash
@@ -95,8 +100,6 @@ with:
 ```yaml title="params.yaml"
 input: './samplesheet.csv'
 outdir: './results/'
-psortb_type: 'gram-'
-signalp_model: 'gram-'
 <...>
 ```
 
@@ -149,7 +152,6 @@ If `-profile` is not specified, the pipeline will run locally and expect all sof
 Specify this when restarting a pipeline. Nextflow will use cached results from any pipeline steps where the inputs are the same, continuing from where it got to previously. For input to be considered the same, not only the names must be identical but the files' contents as well. For more info about this parameter, see [this blog post](https://www.nextflow.io/blog/2019/demystifying-nextflow-resume.html).
 
 You can also supply a run name to resume a specific run: `-resume [run-name]`. Use the `nextflow log` command to show previous run names.
-
 
 ## Nextflow memory requirements
 
