@@ -18,7 +18,6 @@
 3. Predict transmembrane regions with TMHMM
 4. Predict subcellular localization using PSortB
 5. Predict subcellular localization using Phobius (uses older versions of SignalP and TMHMM)
-6. Predict beta barrels using BOCTOPUS2 (on a selection of proteins in gram-negatives! this one is quite slow)
 
 <picture><img alt="workflow roadmap" src="docs/images/workflow.png" width="75%"></picture>
 
@@ -55,8 +54,7 @@ nextflow run path/to/workflow/surfaceproteins \
    -profile <docker/singularity/.../institute> \
    --input samplesheet.csv \
    --outdir <OUTDIR> \
-   --bakta_database /user/path/db/baktadb \
-   --boctopus_database /user/path/db/uniprot20_2013_03
+   --bakta_database /user/path/db/baktadb
 ```
 
 ## Documentation
