@@ -6,7 +6,6 @@
 include { MULTIQC                } from '../modules/nf-core/multiqc/main'
 include { BAKTA_BAKTADBDOWNLOAD  } from '../modules/nf-core/bakta/baktadbdownload/main.nf'
 include { BAKTA_BAKTA            } from '../modules/nf-core/bakta/bakta/main.nf'
-include { PROKKA                 } from '../modules/local/prokka/main'
 include { SPLIT_PROTEINS         } from '../modules/local/splitproteins'
 include { TMHMM_TMHMM            } from '../modules/local/tmhmm/tmhmm'
 include { PARSE_TMHMM            } from '../modules/local/tmhmm/parse'
