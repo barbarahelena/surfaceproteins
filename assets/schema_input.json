@@ -26,15 +26,15 @@
                 "type": "string",
                 "format": "file-path",
                 "exists": true,
-                "pattern": "^\\S+\\.fa(sta)?(a)?$",
-                "errorMessage": "Fasta file cannot contain spaces and must have extension '.fa' or '.fasta'"
+                "pattern": "^\\S+\\.fa(sta)?(a)?(.gz)?$",
+                "errorMessage": "Fasta file cannot contain spaces and must have extension '.fa', '.fasta', '.fasta.gz' or '.fa.gz'."
             },
             "annotation_fasta": {
                 "type": "string",
                 "format": "file-path",
                 "exists": true,
                 "pattern": "^\\S+\\.fa(sta)?$",
-                "errorMessage": "Fasta file cannot contain spaces and must have extension '.fasta' or '.fa'"
+                "errorMessage": "Fasta file cannot contain spaces and must have extension '.fasta' or '.fa'."
             },
             "annotation_gff": {
                 "type": "string",
