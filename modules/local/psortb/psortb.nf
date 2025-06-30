@@ -1,5 +1,6 @@
 process PSORTB_PSORTB {
     tag "$faa"
+    label 'error_retry'
 
     conda ""
     container 'docker://barbarahelena/psortb:1.1'

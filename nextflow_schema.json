@@ -25,8 +25,8 @@
                 },
                 "annotation": {
                     "type": "boolean",
-                    "default": "false",
-                    "description": "Are you providing annotation files (true) or assemblies (false)?"
+                    "default": "true",
+                    "description": "Do you need annotation to be run (default: true)? Or are you providing annotation files already (false)?"
                 },
                 "outdir": {
                     "type": "string",
@@ -101,11 +101,6 @@
             "type": "object",
             "fa_icon": "fas fa-file-import",
             "properties": {
-                "skip_bakta": {
-                    "type": "boolean",
-                    "description": "Skip BAKTA protein annotation, provide BAKTA annotations as input.",
-                    "fa_icon": "fas fa-question-circle"
-                },
                 "bakta_database": {
                     "type": "string",
                     "format": "directory-path",
