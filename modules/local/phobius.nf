@@ -5,7 +5,7 @@ process PHOBIUS {
     container 'docker://barbarahelena/phobius:1.01'
 
     input:
-    tuple val(meta), path(fna), path(faa), path(gff)
+    tuple val(meta), path(faa)
 
     output:
     tuple val(meta), path("*_summary.txt")   , emit: txt

@@ -81,6 +81,9 @@ workflow PIPELINE_INITIALISATION {
     } else {
         Channel
             .fromList(samplesheetToList(input, "${projectDir}/assets/schema_input.json"))
+            .map { meta, _assembly, fasta ->
+                [ meta, fasta ]
+            }
             .groupTuple()
             .set { ch_samplesheet }
     }

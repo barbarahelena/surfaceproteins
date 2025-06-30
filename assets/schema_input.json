@@ -33,15 +33,8 @@
                 "type": "string",
                 "format": "file-path",
                 "exists": true,
-                "pattern": "^\\S+\\.fa(sta)?$",
-                "errorMessage": "Fasta file cannot contain spaces and must have extension '.fasta' or '.fa'."
-            },
-            "annotation_gff": {
-                "type": "string",
-                "format": "file-path",
-                "exists": true,
-                "pattern": "^\\S+\\.gff$",
-                "errorMessage": "GFF file cannot contain spaces and must have extension '.gff'"
+                "pattern": "^\\S+\\.fa(sta)?(a)?$",
+                "errorMessage": "Fasta file cannot contain spaces and must have extension '.faa', '.fasta' or '.fa'."
             }
         },
         "required": ["sample"]

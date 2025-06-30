@@ -7,7 +7,7 @@ process SPLIT_PROTEINS {
         'nf-core/ubuntu:22.04' }"
 
     input:
-    tuple val(meta), path(fasta), path(faa), path(gff)
+    tuple val(meta), path(faa)
 
     output:
     tuple val(meta), path('split_*.faa'), emit: split_proteins

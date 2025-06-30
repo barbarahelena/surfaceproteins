@@ -5,7 +5,7 @@ process PSORTB_PSORTB {
     container 'docker://barbarahelena/psortb:1.1'
 
     input:
-    tuple val(meta), path(fna), path(faa), path(gff)
+    tuple val(meta), path(faa)
 
     output:
     tuple val(meta), path("*_psortb.txt")   , emit: txt

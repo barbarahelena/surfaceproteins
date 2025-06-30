@@ -5,7 +5,7 @@ process MERGE_TABLES {
     container "docker://barbarahelena/phylomodule:1.6"
 
     input:
-    tuple val(meta), path(signalp), path(tmhmm), path(psortb), path(phobius), path(boctopus)
+    tuple val(meta), path(signalp), path(tmhmm), path(psortb), path(phobius)
 
     output:
     tuple val(meta), path("${meta.id}_mergedtable.csv"), emit: mergedtable
@@ -40,13 +40,6 @@ process MERGE_TABLES {
         tot <- left_join(sign, tmhmm) %>% left_join(., phob) %>% left_join(., psort)
     } else{
         tot <- left_join(sign, tmhmm) %>% left_join(., phob)
-    }
-
-    # Check if BOCTOPUS2 results exist
-    # Use BOCTOPUS2 results only if they exist
-    if (file.exists("${boctopus}")){
-        boct <- read.csv("${boctopus}", sep = ",")
-        tot <- left_join(tot, boct)
     }
     
     write.csv(tot, file = "${meta.id}_mergedtable.csv")

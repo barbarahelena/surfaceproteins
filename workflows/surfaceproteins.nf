@@ -42,7 +42,7 @@ workflow SURFACEPROTEINS {
     //
     // Bakta
     //
-    if ( annotation ) {
+    if ( annotation == true ) {
         if ( ! bakta_db ){
             BAKTA_BAKTADBDOWNLOAD()
             bakta_db = BAKTA_BAKTADBDOWNLOAD.out.db
@@ -53,10 +53,10 @@ workflow SURFACEPROTEINS {
             [],
             []
         )
-        ch_annotation = BAKTA_BAKTA.out.fna
-                .join(BAKTA_BAKTA.out.faa)
-                .join(BAKTA_BAKTA.out.gff)
+        ch_annotation = BAKTA_BAKTA.out.faa
         ch_versions = ch_versions.mix( BAKTA_BAKTA.out.versions )
+    } else {
+        ch_annotation = ch_samplesheet
     }
 
     SPLIT_PROTEINS( ch_annotation )
