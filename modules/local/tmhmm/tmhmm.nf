@@ -2,7 +2,7 @@ process TMHMM_TMHMM {
     tag "$faa"
 
     conda ""
-    container 'docker://barbarahelena/tmhmm:2.0'
+    container 'docker://barbarahelena/tmhmm:2.1'
 
     input:
     tuple val(meta), path(faa)
