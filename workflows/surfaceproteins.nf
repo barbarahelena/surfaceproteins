@@ -42,7 +42,7 @@ workflow SURFACEPROTEINS {
     //
     // Bakta
     //
-    if ( annotation == true ) {
+    if ( annotation.val == true ) {
         if ( ! bakta_db ){
             BAKTA_BAKTADBDOWNLOAD()
             bakta_db = BAKTA_BAKTADBDOWNLOAD.out.db
