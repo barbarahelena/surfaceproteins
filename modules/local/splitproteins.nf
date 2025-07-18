@@ -18,7 +18,7 @@ process SPLIT_PROTEINS {
     script:
     def prefix = task.ext.prefix ?: "${meta.id}"
     """
-    awk '/^>/ {n++; if (n % 250 == 1) {close(f); f="split_${prefix}_" int((n-1)/250) ".faa"}} {print > f}' $faa
+    awk 'BEGIN {f=""} /^>/ {n++; if (n % 250 == 1) {close(f); f="split_${prefix}_" int((n-1)/250) ".faa"}} {if(f!="") print > f}' $faa
 
     # Count the number of output files
     num_files=\$(ls split_*.faa | wc -l)
