@@ -69,4 +69,4 @@ Make an issue if you have suggestions for this pipeline. Thanks!
 
 ## Citations
 
-I wrote this workflow, but I made use of existing tools. I suggest that you cite these tools when working with the results of this workflow. 
+I wrote this workflow, but I made use of existing tools. I suggest that you cite these tools when working with the results of this workflow. a
