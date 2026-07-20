@@ -1,1 +1,1 @@
-docker build -t username/tmhmm:2.0 .
+docker build -t username/tmhmm:2.1 .

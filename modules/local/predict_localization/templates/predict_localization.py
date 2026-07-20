@@ -42,6 +42,25 @@ def classify(row):
     if has_sp_call and not pd.isna(cs_prob) and cs_prob < 0.7:
         notes.append(f"SignalP cleavage-site confidence is low (Pr={cs_prob:.2f}) - signal peptide call is uncertain")
 
+    if not pd.isna(psort) and psort == "OuterMembrane" and gram == "positive":
+        notes.append(
+            "PSORTb predicts outer membrane, but this sample is marked Gram-positive - a Gram-positive "
+            "cell has no outer membrane, so this call is likely a Gram-stain mismatch or a PSORTb model "
+            "error and is not trusted here; falling back to the signal-peptide/TM-based logic below"
+        )
+    elif not pd.isna(psort) and psort == "OuterMembrane":
+        loc = "Outer membrane protein (beta-barrel, PSORTb-supported)"
+        conf = "High" if pscore >= 9 else ("Moderate" if pscore >= 7 else "Low")
+        notes.append(
+            f"PSORTb predicts outer membrane (score {pscore}) using its dedicated beta-barrel/composition-based "
+            "detector for Gram-negative bacteria. TMHMM and Phobius only model alpha-helical transmembrane "
+            "segments and have no beta-barrel mode, so they are expected to disagree or produce nonsensical "
+            f"helix counts here (TMHMM {predhel}, Phobius {phtm}) - those counts are not used for this call"
+        )
+        if has_sp_call:
+            notes.append(f"Signal peptide type: {signal_subtype(row)}")
+        return loc, conf, "; ".join(notes)
+
     tm_count = max(predhel, phtm)
 
     if predhel >= 2 and phtm >= 2:
@@ -162,6 +181,7 @@ def classify(row):
 
 
 REVIEW_BUCKET = "TM helices - single tool only (needs review)"
+UNKNOWN_BUCKET = "Unknown / unclassified"
 
 BUCKET_ORDER = [
     "Cytoplasmic",
@@ -171,16 +191,19 @@ BUCKET_ORDER = [
     "Lipoprotein (membrane-anchored)",
     "Periplasmic",
     "Extracellular / secreted",
-    "Unknown / unclassified",
+    "Outer membrane (beta-barrel)",
 ]
 BUCKET_COLOR_VAR = {name: f"--cat{i + 1}" for i, name in enumerate(BUCKET_ORDER)}
 BUCKET_COLOR_VAR[REVIEW_BUCKET] = "--neutral"
+BUCKET_COLOR_VAR[UNKNOWN_BUCKET] = "--neutral"
 
 
 def bucket(loc):
     text = loc.lower()
     if "needs review" in text:
         return REVIEW_BUCKET
+    if "outer membrane" in text:
+        return "Outer membrane (beta-barrel)"
     if text.startswith("cytoplasmic"):
         return "Cytoplasmic"
     if "integral membrane" in text:
@@ -195,7 +218,7 @@ def bucket(loc):
         return "Periplasmic"
     if "non-classical secretion" in text or "extracellular" in text:
         return "Extracellular / secreted"
-    return "Unknown / unclassified"
+    return UNKNOWN_BUCKET
 
 
 def build_webapp_table(df):
@@ -272,11 +295,19 @@ if membrane_fraction > 0.4:
 # Lightweight, self-contained HTML report (no JS/CSS frameworks, no CDN calls)
 # ---------------------------------------------------------------------------
 
-def svg_bar_chart(entries, color_vars, width=640, bar_h=26, gap=10, label_w=230):
+def svg_bar_chart(entries, color_vars, width=640, bar_h=26, gap=10, label_w=230, min_plot_w=140):
     n = len(entries)
     max_val = max((v for _, v in entries), default=1) or 1
     height = n * (bar_h + gap) + gap
+
+    # Size the label column to the longest actual label (~6.2px/char at 11px font)
+    # so long category names (e.g. "Outer membrane protein (beta-barrel,
+    # PSORTb-supported)") don't get clipped off the left edge of the chart.
+    longest_label = max((len(str(label)) for label, _ in entries), default=0)
+    label_w = max(label_w, min(420, 20 + longest_label * 6.2))
+    width = max(width, label_w + min_plot_w + 60)
     plot_w = width - label_w - 60
+
     parts = [f'<svg viewBox="0 0 {width} {height}" width="100%" role="img" aria-label="bar chart" class="chart-svg">']
     for i, (label, val) in enumerate(entries):
         y = gap + i * (bar_h + gap)
@@ -389,7 +420,7 @@ h2 { font-size: 15px; margin: 0 0 12px; color: var(--ink-primary); }
 .chart-row { display: flex; flex-wrap: wrap; gap: 20px; }
 .chart-row .card { flex: 1; min-width: 320px; }
 .chart-svg { overflow: visible; }
-.bar-label { font-size: 12px; fill: var(--ink-secondary); }
+.bar-label { font-size: 11px; fill: var(--ink-secondary); }
 .bar-value { font-size: 12px; fill: var(--ink-primary); font-variant-numeric: tabular-nums; }
 .controls { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
 .controls input, .controls select {
@@ -537,8 +568,9 @@ table_header_cells = "".join(f'<th data-key="{key}">{html.escape(label)}</th>' f
 def write_report(report_df, report_webapp_df, filename, title, extra_meta=""):
     bucket_counts = report_df["locus_bucket"].value_counts()
     bucket_entries = [(b, int(bucket_counts.get(b, 0))) for b in BUCKET_ORDER if bucket_counts.get(b, 0) > 0]
-    if bucket_counts.get(REVIEW_BUCKET, 0) > 0:
-        bucket_entries.append((REVIEW_BUCKET, int(bucket_counts[REVIEW_BUCKET])))
+    for extra in (REVIEW_BUCKET, UNKNOWN_BUCKET):
+        if bucket_counts.get(extra, 0) > 0:
+            bucket_entries.append((extra, int(bucket_counts[extra])))
     bucket_colors = [BUCKET_COLOR_VAR[b] for b, _ in bucket_entries]
     localization_chart = svg_bar_chart(bucket_entries, bucket_colors)
 
