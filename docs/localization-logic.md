@@ -35,6 +35,40 @@ fully secreted.
 
 The classifier checks conditions in this order and returns on the first match:
 
+### 0. Outer membrane (beta-barrel), checked before any TM-helix logic
+
+**If** `psort_prediction == OuterMembrane` **and** `gram_stain != positive` **→**
+`Outer membrane protein (beta-barrel, PSORTb-supported)`, **confidence `High`**
+if PSortB score ≥ 9, **`Moderate`** if ≥ 7, else **`Low`**.
+
+TMHMM and Phobius only model *alpha-helical* transmembrane segments. Outer
+membrane proteins in Gram-negative bacteria (porins, TonB-dependent
+receptors, SusC-type transporters - all common in gut Bacteroidetes) cross
+the membrane as a beta-barrel instead, which neither tool can represent -
+feeding a beta-barrel protein through an alpha-helix HMM tends to produce
+nonsensical results (TMHMM in particular can call dozens of "helices").
+PSortB, by contrast, has a dedicated motif/composition-based outer-membrane
+detector for Gram-negative organisms that doesn't depend on TM-helix
+predictions at all. So when PSortB calls `OuterMembrane`, that call is
+trusted ahead of - and instead of - anything TMHMM/Phobius say; their helix
+counts are recorded in `rationale_notes` for context but are not used to
+determine the call or its confidence.
+
+If PSortB calls `OuterMembrane` on a sample marked Gram-positive, that's a
+biological contradiction (Gram-positive cells have no outer membrane) rather
+than a real signal - the classifier flags it as a likely Gram-stain/PSortB
+mismatch and falls through to the ordinary decision logic below instead of
+trusting it.
+
+> **Note on TMHMM data quality:** on early testing, a container bug in the
+> `TMHMM_TMHMM` process caused per-protein `.summary` files to bleed
+> topology data across proteins in the same batch, producing implausible
+> helix counts (seen up to 300+ on a single protein) for a large fraction of
+> a run - unrelated to real beta-barrel biology. This was fixed in the
+> `barbarahelena/tmhmm` container (2.1). If you see a large "needs review"
+> bucket (rule 1b below) on an older run, re-run with the updated container
+> before concluding those proteins are ambiguous.
+
 ### 1. Multi-pass transmembrane protein
 
 **If** `PredHel >= 2` **and** `phob_TM >= 2` **→** `Integral membrane protein
