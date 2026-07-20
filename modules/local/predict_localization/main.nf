@@ -10,10 +10,10 @@ process PREDICT_LOCALIZATION {
     path mergedtable
 
     output:
-    path "localization.csv"        , emit: csv
-    path "localization_full.csv"   , emit: full_csv
-    path "localization_report.html", emit: report
-    path "versions.yml"            , emit: versions
+    path "localization.csv"         , emit: csv
+    path "localization_full.csv"    , emit: full_csv
+    path "localization_report*.html", emit: report
+    path "versions.yml"             , emit: versions
 
     when:
     task.ext.when == null || task.ext.when

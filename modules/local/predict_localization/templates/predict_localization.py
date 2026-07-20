@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import html
 import json
+import re
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -43,15 +44,30 @@ def classify(row):
 
     tm_count = max(predhel, phtm)
 
-    if predhel >= 2 or phtm >= 2:
+    if predhel >= 2 and phtm >= 2:
         loc = f"Integral membrane protein (multi-pass, ~{tm_count} TM helices)"
-        conf = "High" if (predhel >= 2 and phtm >= 2) else "Moderate"
+        conf = "High"
         if predhel != phtm:
-            notes.append(f"TMHMM predicts {predhel} TM helices vs Phobius {phtm} - both agree on multi-pass")
+            notes.append(f"TMHMM predicts {predhel} TM helices vs Phobius {phtm} - both agree on multi-pass, exact count differs")
         if not pd.isna(psort) and psort != "CytoplasmicMembrane":
             notes.append(f'PSORTb calls "{psort}" (score {pscore}), conflicting with multi-pass TM prediction')
         elif not pd.isna(psort):
             notes.append(f"PSORTb agrees: cytoplasmic membrane (score {pscore})")
+        return loc, conf, "; ".join(notes)
+
+    if (predhel >= 2) != (phtm >= 2):
+        source = "TMHMM" if predhel >= 2 else "Phobius"
+        other = "Phobius" if predhel >= 2 else "TMHMM"
+        loc = f"TM helices predicted by {source} only (~{tm_count}) - needs review"
+        conf = "Low"
+        notes.append(
+            f"TMHMM calls {predhel} TM helices, Phobius calls {phtm} - only {source} supports a multi-pass "
+            f"membrane topology and {other} does not. TMHMM is known to over-call helices on hydrophobic or "
+            "low-complexity/coiled-coil regions, so a single-tool call is not trusted as multi-pass without "
+            "independent agreement"
+        )
+        if not pd.isna(psort):
+            notes.append(f"PSORTb: {psort} (score {pscore})")
         return loc, conf, "; ".join(notes)
 
     if predhel == 1 and phtm == 1:
@@ -145,6 +161,8 @@ def classify(row):
     return loc, conf, "; ".join(notes)
 
 
+REVIEW_BUCKET = "TM helices - single tool only (needs review)"
+
 BUCKET_ORDER = [
     "Cytoplasmic",
     "Membrane-associated / ambiguous",
@@ -156,10 +174,13 @@ BUCKET_ORDER = [
     "Unknown / unclassified",
 ]
 BUCKET_COLOR_VAR = {name: f"--cat{i + 1}" for i, name in enumerate(BUCKET_ORDER)}
+BUCKET_COLOR_VAR[REVIEW_BUCKET] = "--neutral"
 
 
 def bucket(loc):
     text = loc.lower()
+    if "needs review" in text:
+        return REVIEW_BUCKET
     if text.startswith("cytoplasmic"):
         return "Cytoplasmic"
     if "integral membrane" in text:
@@ -235,6 +256,18 @@ print(f"Wrote localization.csv ({len(webapp_df)} rows, {len(webapp_df.columns)} 
 df.drop(columns=["cs_prob", "locus_bucket"]).to_csv("localization_full.csv", index=False)
 print("Wrote localization_full.csv")
 
+MEMBRANE_BUCKETS = {"Integral membrane (multi-pass)", "Membrane-anchored (single-pass)"}
+membrane_fraction = df["locus_bucket"].isin(MEMBRANE_BUCKETS).mean()
+if membrane_fraction > 0.4:
+    print(
+        f"WARNING: {membrane_fraction:.0%} of proteins were classified as membrane "
+        "(integral multi-pass or single-pass anchored). Real proteomes are typically "
+        "~20-30% membrane protein; a fraction this high usually means TMHMM and/or "
+        "Phobius are over-calling TM helices on this input (e.g. low-complexity or "
+        "repetitive sequence) rather than reflecting genuine biology - spot-check a "
+        "handful of these proteins' annotations before trusting the output."
+    )
+
 # ---------------------------------------------------------------------------
 # Lightweight, self-contained HTML report (no JS/CSS frameworks, no CDN calls)
 # ---------------------------------------------------------------------------
@@ -262,36 +295,11 @@ def svg_bar_chart(entries, color_vars, width=640, bar_h=26, gap=10, label_w=230)
     return "".join(parts)
 
 
-bucket_counts = df["locus_bucket"].value_counts()
-bucket_entries = [(b, int(bucket_counts.get(b, 0))) for b in BUCKET_ORDER if bucket_counts.get(b, 0) > 0]
-bucket_colors = [BUCKET_COLOR_VAR[b] for b, _ in bucket_entries]
-localization_chart = svg_bar_chart(bucket_entries, bucket_colors)
-
 CONF_ORDER = ["High", "Moderate", "Low"]
 CONF_COLOR_VAR = {"High": "--seq-high", "Moderate": "--seq-mod", "Low": "--seq-low"}
-conf_counts = df["localization_confidence"].value_counts()
-conf_entries = [(c, int(conf_counts.get(c, 0))) for c in CONF_ORDER if conf_counts.get(c, 0) > 0]
-conf_colors = [CONF_COLOR_VAR[c] for c, _ in conf_entries]
-confidence_chart = svg_bar_chart(conf_entries, conf_colors, width=480, label_w=110)
-
 GRAM_ORDER = ["negative", "positive", "unknown"]
 GRAM_LABEL = {"negative": "Gram-negative", "positive": "Gram-positive", "unknown": "Unknown"}
 GRAM_COLOR_VAR = {"negative": "--cat1", "positive": "--cat2", "unknown": "--neutral"}
-gram_counts = df["gram_stain"].value_counts()
-gram_entries = [(GRAM_LABEL[g], int(gram_counts.get(g, 0))) for g in GRAM_ORDER if gram_counts.get(g, 0) > 0]
-gram_colors = [GRAM_COLOR_VAR[g] for g in GRAM_ORDER if gram_counts.get(g, 0) > 0]
-gram_chart = svg_bar_chart(gram_entries, gram_colors, width=480, label_w=110)
-
-n_proteins = len(df)
-n_samples = df["sample_id"].nunique()
-n_species = df["tax_id"].nunique()
-n_high = int(conf_counts.get("High", 0))
-n_moderate = int(conf_counts.get("Moderate", 0))
-n_low = int(conf_counts.get("Low", 0))
-generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-
-table_records = webapp_df.astype(object).where(pd.notnull(webapp_df), None).to_dict(orient="records")
-table_json = json.dumps(table_records, default=str)
 
 CSS = """
 :root {
@@ -526,17 +534,48 @@ table_header_cells = "".join(f'<th data-key="{key}">{html.escape(label)}</th>' f
     ("rationale_notes", "Rationale"),
 ])
 
-html_doc = f"""<!doctype html>
+def write_report(report_df, report_webapp_df, filename, title, extra_meta=""):
+    bucket_counts = report_df["locus_bucket"].value_counts()
+    bucket_entries = [(b, int(bucket_counts.get(b, 0))) for b in BUCKET_ORDER if bucket_counts.get(b, 0) > 0]
+    if bucket_counts.get(REVIEW_BUCKET, 0) > 0:
+        bucket_entries.append((REVIEW_BUCKET, int(bucket_counts[REVIEW_BUCKET])))
+    bucket_colors = [BUCKET_COLOR_VAR[b] for b, _ in bucket_entries]
+    localization_chart = svg_bar_chart(bucket_entries, bucket_colors)
+
+    conf_counts = report_df["localization_confidence"].value_counts()
+    conf_entries = [(c, int(conf_counts.get(c, 0))) for c in CONF_ORDER if conf_counts.get(c, 0) > 0]
+    conf_colors = [CONF_COLOR_VAR[c] for c, _ in conf_entries]
+    confidence_chart = svg_bar_chart(conf_entries, conf_colors, width=480, label_w=110)
+
+    gram_counts = report_df["gram_stain"].value_counts()
+    gram_entries = [(GRAM_LABEL[g], int(gram_counts.get(g, 0))) for g in GRAM_ORDER if gram_counts.get(g, 0) > 0]
+    gram_colors = [GRAM_COLOR_VAR[g] for g in GRAM_ORDER if gram_counts.get(g, 0) > 0]
+    gram_chart = svg_bar_chart(gram_entries, gram_colors, width=480, label_w=110)
+
+    n_proteins = len(report_df)
+    n_samples = report_df["sample_id"].nunique()
+    n_species = report_df["tax_id"].nunique()
+    n_high = int(conf_counts.get("High", 0))
+    n_moderate = int(conf_counts.get("Moderate", 0))
+    n_low = int(conf_counts.get("Low", 0))
+    generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    table_records = report_webapp_df.astype(object).where(pd.notnull(report_webapp_df), None).to_dict(orient="records")
+    table_json = json.dumps(table_records, default=str)
+
+    esc_title = html.escape(title)
+
+    html_doc = f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Surface protein localization report</title>
+<title>{esc_title}</title>
 <style>{CSS}</style>
 </head>
 <body>
-<h1>Surface protein localization report</h1>
-<div class="meta">Generated {generated_at} &middot; {n_proteins} proteins &middot; {n_samples} samples &middot; {n_species} species</div>
+<h1>{esc_title}</h1>
+<div class="meta">Generated {generated_at} &middot; {n_proteins} proteins &middot; {n_samples} samples &middot; {n_species} species{extra_meta}</div>
 
 <div class="stat-row">
   <div class="stat-tile"><div class="value">{n_proteins}</div><div class="label">Proteins classified</div></div>
@@ -589,9 +628,35 @@ html_doc = f"""<!doctype html>
 </html>
 """
 
-with open("localization_report.html", "w") as f:
-    f.write(html_doc)
-print("Wrote localization_report.html")
+    with open(filename, "w") as f:
+        f.write(html_doc)
+    print(f"Wrote {filename} ({n_proteins} proteins)")
+
+
+REPORT_PROTEIN_THRESHOLD = 1000
+
+if len(df) > REPORT_PROTEIN_THRESHOLD:
+    total_proteins = len(df)
+    total_samples = df["sample_id"].nunique()
+    print(
+        f"Run has {total_proteins} proteins (over the {REPORT_PROTEIN_THRESHOLD}-protein threshold) - "
+        "writing one HTML report per sample instead of a single combined report to keep each file light."
+    )
+    for sample_id, idx in df.groupby("sample_id", sort=True).groups.items():
+        safe_id = re.sub(r"[^A-Za-z0-9_.-]", "_", str(sample_id))
+        write_report(
+            df.loc[idx],
+            webapp_df.loc[idx],
+            filename=f"localization_report_{safe_id}.html",
+            title=f"Surface protein localization report - {sample_id}",
+            extra_meta=f" &middot; part of a {total_proteins}-protein, {total_samples}-sample run",
+        )
+else:
+    write_report(
+        df, webapp_df,
+        filename="localization_report.html",
+        title="Surface protein localization report",
+    )
 
 with open("versions.yml", "w") as vf:
     import sys

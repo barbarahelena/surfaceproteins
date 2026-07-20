@@ -37,11 +37,32 @@ The classifier checks conditions in this order and returns on the first match:
 
 ### 1. Multi-pass transmembrane protein
 
-**If** `PredHel >= 2` **or** `phob_TM >= 2` **→** `Integral membrane protein
-(multi-pass, ~N TM helices)`
+**If** `PredHel >= 2` **and** `phob_TM >= 2` **→** `Integral membrane protein
+(multi-pass, ~N TM helices)`, **confidence `High`**.
 
-- **Confidence `High`** if both TMHMM and Phobius agree on ≥2 helices, otherwise `Moderate`.
-- If PSortB disagrees (predicts anything other than `CytoplasmicMembrane`), that conflict is recorded in `rationale_notes`.
+Both tools independently agreeing on ≥2 helices is required here - TMHMM is
+prone to over-calling transmembrane helices on hydrophobic, low-complexity or
+coiled-coil stretches, and at genome scale that false-positive rate is high
+enough that trusting TMHMM alone would misclassify a large fraction of a
+proteome as multi-pass membrane protein (this was a real bug in an earlier
+version of this classifier - see [CHANGELOG.md](../CHANGELOG.md)). If PSortB
+disagrees (predicts anything other than `CytoplasmicMembrane`), that conflict
+is recorded in `rationale_notes`.
+
+### 1b. Only one tool calls ≥2 helices
+
+**If** `PredHel >= 2` **xor** `phob_TM >= 2` (exactly one of the two, not
+both) **→** `TM helices predicted by <tool> only (~N) - needs review`,
+**confidence `Low`**.
+
+This is deliberately *not* folded into either "multi-pass membrane" or
+"cytoplasmic" - a single tool calling several helices with no corroboration
+is exactly the pattern TMHMM produces on non-membrane proteins with
+hydrophobic/repetitive regions, but it can also be a real membrane protein
+that Phobius under-calls. Treat these as needing a manual look (e.g. at the
+Bakta annotation) rather than trusting the call either way. If more than 40%
+of a run's proteins end up in the confident membrane buckets, the pipeline
+prints a `WARNING` to the process log as a sanity check.
 
 ### 2. Single-pass signal-anchor
 
@@ -110,7 +131,7 @@ Tat/SPI, Tat-lipoprotein/SPII, or Pilin-like/SPIII) is always recorded in
 
 - **High** - Multiple tools independently agree (e.g. TMHMM and Phobius both call the same number of TM helices, or PSortB corroborates with a high score).
 - **Moderate** - One tool gives a clear signal but there's no independent corroboration (most commonly: SignalP calls a signal peptide but PSortB has no hit for that protein at all).
-- **Low** - Tools actively disagree, or there isn't enough information (unknown Gram stain, or PSortB contradicts an otherwise-negative SignalP/Phobius/TMHMM result).
+- **Low** - Tools actively disagree, or there isn't enough information (unknown Gram stain, PSortB contradicts an otherwise-negative SignalP/Phobius/TMHMM result, or only one of TMHMM/Phobius calls ≥2 TM helices - see [1b](#1b-only-one-tool-calls-2-helices)).
 
 `Moderate` calls are the largest group in most runs, and the most common
 reason is simply that **PSortB didn't return a prediction for that protein at
@@ -130,3 +151,10 @@ corroboration.
 - This is a rule-based heuristic, not a trained classifier - it is meant to
   triage and explain, not to replace manual curation of proteins you plan to
   act on experimentally.
+- TMHMM's helix counts should not be trusted in isolation, even after the
+  agreement requirement in rule 1: on real genome-scale runs it can still
+  call double digits (occasionally 100+) of helices on a single protein.
+  `~N TM helices` in a `High`-confidence multi-pass call is the larger of
+  TMHMM's and Phobius's counts and can still be inflated by TMHMM even when
+  Phobius corroborates the qualitative "multi-pass" call - treat the count as
+  approximate, not exact.
