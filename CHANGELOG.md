@@ -9,6 +9,9 @@ Initial release of nf-core/surfaceproteins, created with the [nf-core](https://n
 
 ### `Added`
 
+- `COLLATE_MERGEDTABLES`: automatically concatenates every sample's merged table into `mergedtables/all_samples_mergedtable.csv`, adding `sample_id` and `gram_stain` (from the samplesheet's `gram` column) - previously a manual, out-of-pipeline step.
+- `PREDICT_LOCALIZATION`: consensus localization call per protein from SignalP, TMHMM, Phobius, PSortB and Gram stain, with a confidence level and rationale. Outputs `localization/localization.csv`, `localization_full.csv` and a self-contained `localization_report.html`. See [docs/localization-logic.md](docs/localization-logic.md).
+
 ### `Fixed`
 
 ### `Dependencies`

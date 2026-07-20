@@ -15,6 +15,8 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes b
 - [TMHMM](#tmhmm) - Transmembrane helix prediction
 - [PSortB](#psortb) - Bacterial protein subcellular localization prediction
 - [Phobius](#phobius) - Combined signal peptide and transmembrane topology prediction
+- [Merged tables](#merged-tables) - Per-sample and all-sample tables combining the raw output of every tool
+- [Localization prediction](#localization-prediction) - Consensus localization call, confidence, and HTML report
 - [MultiQC](#multiqc) - Aggregate report describing results and QC from the whole pipeline
 - [Pipeline information](#pipeline-information) - Report metrics generated during the workflow execution
 
@@ -90,24 +92,32 @@ The pipeline is built using [Nextflow](https://www.nextflow.io/) and processes b
 
 [Phobius](https://phobius.sbc.su.se/) is a combined transmembrane topology and signal peptide predictor. It uses a hidden Markov model that can distinguish between transmembrane segments and signal peptides, providing a unified prediction that avoids the confusion that can arise when using separate predictors. This is particularly useful for surface protein analysis where both features may be present.
 
-### Merged Results
+### Merged tables
 
 <details markdown="1">
 <summary>Output files</summary>
 
-- `merged_results/`
-  - `*_surface_proteins_summary.tsv`: Final integrated table combining all prediction results
+- `mergedtables/`
+  - `<sample>_mergedtable.csv`: one row per protein for a single sample, with the raw SignalP, TMHMM, Phobius and PSortB columns side by side
+  - `all_samples_mergedtable.csv`: the above, concatenated across every sample in the run, with `sample_id` and `gram_stain` columns added (`gram_stain` is taken directly from the `gram` column of your input samplesheet, not re-derived)
 
 </details>
 
-The pipeline combines results from all prediction tools into a comprehensive summary table that includes:
-- Protein identifiers and sequences
-- Signal peptide predictions from SignalP
-- Transmembrane helix predictions from TMHMM
-- Subcellular localization predictions from PSortB
-- Combined topology predictions from Phobius
+Each sample's individual prediction outputs (SignalP, TMHMM, Phobius, PSortB) are first joined into one table per sample, then all samples are collated into a single `all_samples_mergedtable.csv`. This is the raw, per-tool data that [localization prediction](#localization-prediction) is built on top of - useful if you want to inspect or reprocess the individual tool calls yourself.
 
-This integrated output allows for comprehensive analysis of surface proteins and their predicted cellular locations.
+### Localization prediction
+
+<details markdown="1">
+<summary>Output files</summary>
+
+- `localization/`
+  - `localization.csv`: one row per protein with a curated set of columns from each tool plus the final `predicted_localization`, `localization_confidence` and `rationale_notes`
+  - `localization_full.csv`: the same predictions, joined back onto every original column from `all_samples_mergedtable.csv` (useful for provenance/debugging)
+  - `localization_report.html`: a self-contained HTML report - summary stat tiles, a localization/confidence/Gram-stain breakdown, and a sortable, filterable version of `localization.csv`. Open it directly in a browser, no server or internet connection required.
+
+</details>
+
+The pipeline resolves the (sometimes conflicting) calls from SignalP, TMHMM, Phobius and PSortB, together with the sample's Gram stain, into a single consensus localization per protein - e.g. `Cytoplasmic`, `Periplasmic (Sec-dependent; may be further exported)`, `Integral membrane protein (multi-pass, ~4 TM helices)` - with a `High`/`Moderate`/`Low` confidence level and a `rationale_notes` column explaining, in plain English, which tools agreed or disagreed and why. See [docs/localization-logic.md](localization-logic.md) for the full decision logic.
 
 ### MultiQC
 

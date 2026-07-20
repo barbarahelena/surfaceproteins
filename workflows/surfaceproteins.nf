@@ -16,6 +16,8 @@ include { SIGNALP_CONCAT         } from '../modules/local/signalp/concat'
 include { PSORTB_PSORTB          } from '../modules/local/psortb/psortb'
 include { PSORTB_PARSE           } from '../modules/local/psortb/parse'
 include { MERGE_TABLES           } from '../modules/local/mergetables'
+include { COLLATE_MERGEDTABLES   } from '../modules/local/collate_mergedtables/main'
+include { PREDICT_LOCALIZATION   } from '../modules/local/predict_localization/main'
 include { paramsSummaryMap       } from 'plugin/nf-schema'
 include { paramsSummaryMultiqc   } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { softwareVersionsToYAML } from '../subworkflows/nf-core/utils_nfcore_pipeline'
@@ -68,7 +70,8 @@ workflow SURFACEPROTEINS {
     //
     // TMHMM
     //
-    TMHMM_TMHMM( individual_split_proteins )
+    ch_tmhmm_model = Channel.fromPath("${projectDir}/assets/TMHMM2.0.model").first()
+    TMHMM_TMHMM( individual_split_proteins, ch_tmhmm_model )
     ch_versions = ch_versions.mix( TMHMM_TMHMM.out.versions )
     ch_tmhmm_results = TMHMM_TMHMM.out.catanno.join(TMHMM_TMHMM.out.catsummary)
     
@@ -114,6 +117,23 @@ workflow SURFACEPROTEINS {
         .join(PHOBIUS.out.txt, by: [0])
 
     MERGE_TABLES( ch_output )
+
+    //
+    // Collate per-sample tables and predict protein localization
+    //
+    ch_manifest = MERGE_TABLES.out.mergedtable
+        .map { meta, csv -> "${meta.id}\t${meta.gram}\t${csv.name}" }
+        .collectFile(name: 'manifest.tsv', newLine: true, seed: "sample_id\tgram\tfilename")
+
+    ch_mergedtables = MERGE_TABLES.out.mergedtable
+        .map { meta, csv -> csv }
+        .collect()
+
+    COLLATE_MERGEDTABLES( ch_manifest, ch_mergedtables )
+    ch_versions = ch_versions.mix( COLLATE_MERGEDTABLES.out.versions )
+
+    PREDICT_LOCALIZATION( COLLATE_MERGEDTABLES.out.csv )
+    ch_versions = ch_versions.mix( PREDICT_LOCALIZATION.out.versions )
 
     //
     // Collate and save software versions
