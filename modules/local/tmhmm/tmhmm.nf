@@ -2,10 +2,11 @@ process TMHMM_TMHMM {
     tag "$faa"
 
     conda ""
-    container 'docker://barbarahelena/tmhmm:2.1'
+    container 'docker://barbarahelena/tmhmm:2.0'
 
     input:
     tuple val(meta), path(faa)
+    path tmhmm_model
 
     output:
     tuple val(meta), path("*_modified.faa")  , emit: modfasta
@@ -77,7 +78,7 @@ process TMHMM_TMHMM {
 
     echo 'Now we run tmhmm..'
     # Run TMHMM on the modified FASTA file
-    tmhmm -f ${faa.baseName}_modified.faa -m ${projectDir}/assets/TMHMM2.0.model
+    tmhmm -f ${faa.baseName}_modified.faa -m ${tmhmm_model}
     
     # Combine all .annotation files into one output
     echo '..concatenate the annotation files..'

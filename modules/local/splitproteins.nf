@@ -2,9 +2,9 @@ process SPLIT_PROTEINS {
     tag "$meta.id"
 
     conda "${moduleDir}/environment.yml"
-    container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
+    container { workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/ubuntu:22.04' :
-        'nf-core/ubuntu:22.04' }"
+        'nf-core/ubuntu:22.04' }
 
     input:
     tuple val(meta), path(faa)
