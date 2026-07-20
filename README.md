@@ -18,6 +18,7 @@
 3. Predict transmembrane regions with TMHMM
 4. Predict subcellular localization using PSortB
 5. Predict subcellular localization using Phobius (uses older versions of SignalP and TMHMM)
+6. Combine all of the above into one consensus localization call per protein, with a confidence level and a plain-English rationale ([details](docs/localization-logic.md))
 
 <picture><img alt="workflow roadmap" src="docs/images/workflow.png" width="75%"></picture>
 
