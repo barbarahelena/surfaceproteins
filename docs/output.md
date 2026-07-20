@@ -113,7 +113,10 @@ Each sample's individual prediction outputs (SignalP, TMHMM, Phobius, PSortB) ar
 - `localization/`
   - `localization.csv`: one row per protein with a curated set of columns from each tool plus the final `predicted_localization`, `localization_confidence` and `rationale_notes`
   - `localization_full.csv`: the same predictions, joined back onto every original column from `all_samples_mergedtable.csv` (useful for provenance/debugging)
-  - `localization_report.html`: a self-contained HTML report - summary stat tiles, a localization/confidence/Gram-stain breakdown, and a sortable, filterable version of `localization.csv`. Open it directly in a browser, no server or internet connection required.
+  - `localization_report.html` (runs with **1000 or fewer** proteins across the whole run): a self-contained HTML report covering every sample - summary stat tiles, a localization/confidence/Gram-stain breakdown, and a sortable, filterable version of `localization.csv`
+  - `localization_report_<sample_id>.html` (runs with **more than 1000** proteins): the same report, one per sample instead of one for the whole run, so no single HTML file balloons in size on large runs
+
+  Either way, open the report directly in a browser - it's self-contained, no server or internet connection required.
 
 </details>
 
